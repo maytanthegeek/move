@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gordonklaus/portaudio"
+	"github.com/maytanthegeek/move/pkg/keyboard"
 	"github.com/maytanthegeek/move/pkg/player"
 )
 
@@ -38,30 +39,45 @@ func playAudioFile(filename string) {
 	go p.Play(stream)
 
 	scanner := bufio.NewScanner(os.Stdin)
-	var action string
+	keysEvents, err := keyboard.GetKeys(10)
+	chk(err)
+	defer func() {
+		_ = keyboard.Close()
+	}()
+
 UserAction:
 	for {
 		fmt.Print("move > ")
-		scanner.Scan()
-		action = scanner.Text()
-		switch action {
-		case "play":
-			go p.Play(stream)
-		case "pause":
-			p.Pause()
-		case "stop":
+
+		event := <-keysEvents
+		chk(event.Err)
+
+		switch event.Rune {
+		case 'p':
+			if p.GetStatus() == player.Paused {
+				go p.Play(stream)
+			} else {
+				p.Pause()
+			}
+		case 's':
 			p.Stop()
-		case "change":
-			var filename string
+		case 'c':
 			fmt.Print("song > ")
+
+			var filename string
 			scanner.Scan()
 			filename = scanner.Text()
+
 			p.Stop()
 			p.ChangeSong(filename)
-		case "quit":
-			p.Stop()
-			break UserAction
+		default:
+			if event.Key == keyboard.KeyCtrlC {
+				p.Stop()
+				break UserAction
+			}
 		}
+
+		fmt.Printf("%q\n", event.Rune)
 	}
 
 	fmt.Println("Bye")

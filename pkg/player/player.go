@@ -64,3 +64,7 @@ func (p *Player) ChangeSong(filename string) {
 	p.filename = filename
 	p.song = &output
 }
+
+func (p *Player) GetStatus() SongState {
+	return p.status
+}
